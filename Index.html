@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><3</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background-color: #FFFDD0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* Corazón Grande que cambia de color */
+        #mainTitle {
+            color: #000; font-weight: 200; margin-top: 20px;
+            font-size: 4rem; transition: all 0.3s ease; text-align: center; z-index: 100;
+        }
+
+        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; height: 70vh; width: 100%; }
+        .active { display: flex !important; }
+
+        #playBtn {
+            background-color: #add8e6; border: none; padding: 20px 70px;
+            border-radius: 50px; font-size: 1.6rem; color: white; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-top: 30px; z-index: 1000;
+        }
+
+        /* Status debajo del corazón grande */
+        #statusDisplay { 
+            color: #333; margin-bottom: 10px; font-size: 1rem; 
+            width: 360px; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* ÁREA DE JUEGO LILA */
+        #gameArea {
+            position: relative; width: 360px; height: 480px;
+            background-color: #E6E6FA; border: 2px solid white; border-radius: 20px;
+            overflow: hidden; touch-action: none;
+        }
+
+        #basket {
+            position: absolute; bottom: 10px; width: 90px; height: 90px;
+            background: url('image_1.png') no-repeat center/contain;
+            left: 135px; z-index: 10; pointer-events: none;
+        }
+
+        .cat {
+            position: absolute; width: 50px; height: 50px;
+            background: url('image_2.png') no-repeat center/contain;
+        }
+
+        #sadCatPop {
+            position: absolute; width: 70px; display: none; top: 10px; right: 10px; z-index: 20;
+        }
+
+        .broken-heart { position: absolute; font-size: 35px; user-select: none; z-index: 5; }
+
+        /* CARTA FINAL - AJUSTADA */
+        #letterWrapper { 
+            position: relative; 
+            width: 300px; 
+            height: 260px; 
+            cursor: pointer;
+            margin-top: 50px; /* BAJA MÁS EL SOBRE */
+        }
+        
+        .envelope-img { position: absolute; width: 100%; height: 100%; background-size: contain; background-repeat: no-repeat; background-position: center; transition: opacity 0.4s; }
+        
+        #closedEnv { background-image: url('image_0.png'); z-index: 5; }
+        #openEnv { background-image: url('image_3.png'); z-index: 4; opacity: 0; }
+
+        #letterPaper {
+            position: absolute; top: 40px; left: 5%; width: 90%; height: 0;
+            background: url('image_6.png') no-repeat center/cover;
+            z-index: 3; transition: all 0.9s ease-in-out; overflow: hidden;
+            
+            /* CENTRADO DE TEXTO */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 25px; 
+            box-sizing: border-box; 
+            text-align: center; 
+            border-radius: 5px;
+        }
+
+        .revealed #closedEnv { opacity: 0; }
+        .revealed #openEnv { opacity: 1; }
+        .revealed #letterPaper { height: 380px; top: -240px; z-index: 6; }
+
+        .shoo-cat {
+            position: absolute; width: 75px; height: 75px;
+            background: url('image_8.png') no-repeat center/contain;
+            pointer-events: none; z-index: 150;
+        }
+
+        #flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; opacity: 0; pointer-events: none; z-index: 2000; }
+    </style>
+</head>
+<body>
+
+    <h1 id="mainTitle">Te amo mi amor💜</h1>
+
+    <div id="startScreen" class="screen active">
+        <img src="image_7.png" style="width: 160px;" alt="Gatito Inicio">
+        <button id="playBtn" onclick="startGame()">Play</button>
+    </div>
+
+    <div id="gameScreen" class="screen" style="justify-content: flex-start; padding-top: 10px;">
+        <div id="statusDisplay">
+            <span>Gatitos recolectados: <span id="counter">0</span> / ?</span>
+            <span id="livesDisplay">❤️❤️❤️</span>
+        </div>
+        <div id="gameArea">
+            <img id="sadCatPop" src="image_4.png">
+            <div id="basket"></div>
+        </div>
+    </div>
+
+    <div id="finalScreen" class="screen">
+        <div id="letterWrapper" onclick="openLetter()">
+            <div id="closedEnv" class="envelope-img"></div>
+            <div id="openEnv" class="envelope-img"></div>
+            <div id="letterPaper">
+                <p style="font-family: 'Georgia', serif; font-size: 1rem; color: #333; line-height: 1.6;">
+                    Gracias por llevar estos meses conmigo, eres la persona mas especial para mi, quiero amarte solo a ti por toda la eternidad, te amo miamol 🦭💐
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="flash"></div>
+
+    <script>
+        let score = 0;
+        let misses = 0;
+        let gameActive = false;
+        let spawnInterval;
+        const heartColors = ['💜','🤎','🖤','🩶','🤍','❤️','🧡','💛','💚','🩵','💙'];
+
+        function startGame() {
+            score = 0; misses = 0; gameActive = true;
+            document.getElementById('counter').innerText = "0";
+            document.getElementById('livesDisplay').innerText = "❤️❤️❤️";
+            document.getElementById('mainTitle').innerHTML = "💜";
+            
+            document.getElementById('startScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+            
+            spawnInterval = setInterval(() => {
+                if (gameActive) {
+                    const type = Math.random() > 0.35 ? 'cat' : 'bad';
+                    spawnObject(type);
+                }
+            }, 600);
+        }
+
+        const moveBasket = (e) => {
+            if (!gameActive) return;
+            const rect = document.getElementById('gameArea').getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let x = clientX - rect.left - 45;
+            document.getElementById('basket').style.left = Math.max(0, Math.min(x, 270)) + 'px';
+        };
+
+        document.getElementById('gameArea').addEventListener('mousemove', moveBasket);
+        document.getElementById('gameArea').addEventListener('touchmove', moveBasket);
+
+        function spawnObject(type) {
+            const obj = document.createElement('div');
+            obj.className = type === 'cat' ? 'cat' : 'broken-heart';
+            if(type === 'bad') obj.innerHTML = '💔';
+            
+            obj.style.left = Math.random() * 310 + 'px';
+            obj.style.top = '-50px';
+            document.getElementById('gameArea').appendChild(obj);
+
+            let posY = -50;
+            let speed = 3.5 + Math.random() * 2.5;
+
+            const fall = setInterval(() => {
+                if (!gameActive) { clearInterval(fall); obj.remove(); return; }
+                posY += speed;
+                obj.style.top = posY + 'px';
+
+                const bRect = document.getElementById('basket').getBoundingClientRect();
+                const oRect = obj.getBoundingClientRect();
+
+                if (oRect.bottom > bRect.top + 20 && oRect.left < bRect.right - 10 && oRect.right > bRect.left + 10 && oRect.top < bRect.bottom) {
+                    clearInterval(fall); obj.remove();
+                    if (type === 'cat') {
+                        score++;
+                        const randomColor = heartColors[Math.floor(Math.random() * heartColors.length)];
+                        document.getElementById('mainTitle').innerHTML = randomColor;
+                    } else {
+                        score = Math.max(0, score - 1);
+                        showSad();
+                    }
+                    document.getElementById('counter').innerText = score;
+                    if (score >= 25) win(); 
+                }
+
+                if (posY > 480) {
+                    clearInterval(fall); obj.remove();
+                    if (type === 'cat') {
+                        misses++;
+                        updateLives();
+                        if (misses >= 3) {
+                            alert("¡Se perdieron los gatitos! Inténtalo de nuevo ❤️");
+                            location.reload();
+                        }
+                    }
+                }
+            }, 20);
+        }
+
+        function updateLives() {
+            let livesStr = "";
+            for(let i=0; i < (3 - misses); i++) livesStr += "❤️";
+            for(let i=0; i < misses; i++) livesStr += "🖤"; 
+            document.getElementById('livesDisplay').innerText = livesStr;
+        }
+
+        function showSad() {
+            const sad = document.getElementById('sadCatPop');
+            sad.style.display = 'block';
+            setTimeout(() => sad.style.display = 'none', 800);
+        }
+
+        function win() {
+            gameActive = false; clearInterval(spawnInterval);
+            document.getElementById('flash').style.opacity = 1;
+            document.getElementById('mainTitle').style.display = "none"; 
+            setTimeout(() => {
+                document.getElementById('flash').style.opacity = 0;
+                document.getElementById('gameScreen').classList.remove('active');
+                document.getElementById('finalScreen').classList.add('active');
+            }, 500);
+        }
+
+        function openLetter() {
+            const wrapper = document.getElementById('letterWrapper');
+            if(wrapper.classList.contains('revealed')) return;
+            wrapper.classList.add('revealed');
+            setTimeout(explodeCats, 500);
+        }
+
+        function explodeCats() {
+            for (let i = 0; i < 15; i++) {
+                const c = document.createElement('div');
+                c.className = 'shoo-cat';
+                const rect = document.getElementById('letterWrapper').getBoundingClientRect();
+                c.style.left = (rect.left + 110) + 'px';
+                c.style.top = (rect.top + 100) + 'px';
+                document.getElementById('finalScreen').appendChild(c);
+
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 7 + Math.random() * 10;
+                let x = parseFloat(c.style.left), y = parseFloat(c.style.top), op = 1;
+
+                const anim = setInterval(() => {
+                    x += Math.cos(angle) * speed; y += Math.sin(angle) * speed;
+                    op -= 0.02; c.style.left = x + 'px'; c.style.top = y + 'px'; c.style.opacity = op;
+                    if (op <= 0) { clearInterval(anim); c.remove(); }
+                }, 20);
+            }
+        }
+    </script>
+</body>
+</html>
